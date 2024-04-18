@@ -18,7 +18,8 @@ function InitGame() {
   env.startTime = Date.now()
 
   env.mainCamera = new Three.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-
+  env.scene.add(mainCamera)
+  
   env.originToCam = new Three.Vector2(0,0)
   env.frameDelta = 0.1
   env.prevRender = Date.now()
