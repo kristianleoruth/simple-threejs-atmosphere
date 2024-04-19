@@ -23,15 +23,14 @@ function Game() {
 
 ### GameMaster class
 consts:
- - FRAME_TIME = 0.1 # Desired time between frames (seconds)
-vars:
+ - ```FRAME_TIME``` = 0.1 : Desired time between frames (seconds)
+
+variables:
  - ```mainCamera``` : Camera used in render() call
  - ```renderer``` : Renderer used to render() 
  - ```scene``` : Scene used in render() 
  - ```tloader``` : Texture Loader
  - ```originToCam``` : (three.js Vector2) theta (angle from xaxis) and phi (angle of yaxis)
-
- # game loop
  - ```prevRender``` : Time of previous frame render (ms)
  - ```startTime``` : When game was initialized
  - ```frameDelta``` : Time taken to render previous scene
