@@ -14,3 +14,9 @@ export function Clamp(val, max, min) {
   else if (val < min) return min
   else return val
 }
+
+export function WrapAngle(theta) {
+  if (theta >= 2*Math.PI) return theta - 2 * Math.PI
+  else if (theta <= 0) return theta + 2 * Math.PI
+  else return theta
+}
