@@ -1,38 +1,67 @@
-uniform vec3 spos;
+varying vec3 fragNorm;
+varying vec3 pos;
+varying mat4 modelViewMat;
+varying mat4 projMat;
+
 uniform float eradius;
-uniform float atmradius;
+uniform vec3 sunPos;
 
-varying vec3 viewray;
-varying vec3 sunray;
-varying vec3 vpos;
+float distNormalizer;
+float camSunAngle;
 
-varying mat4 vm_mat;
-varying mat4 proj_mat;
+#define PI 3.14159
+// #define PI 180.0
 
-float samplep(vec3 P) {
-  vec3 Pcam = P + cameraPosition;
-  vec3 C = -cameraPosition;
-
-  float adj = dot(C, normalize(Pcam));
-  float x = length(adj) - length(Pcam);
-  return 2.0 * x; 
+float camSpaceDist(vec3 p1, vec3 p2) {
+  vec2 p1cam = (modelViewMat * vec4(p1, 1.0)).xy;
+  vec2 p2cam = (modelViewMat * vec4(p2, 1.0)).xy;
+  return distance(p1cam, p2cam) / distNormalizer;
 }
 
-#define THICK 0.05
-float alphaedit(vec3 P) {
-  vec4 pos = vec4(P, 1.0);
-  vec4 proj = proj_mat * vm_mat * pos;
-
-  vec3 right = vec3(vm_mat[0][0], vm_mat[1][0], vm_mat[2][0]);
-  float unit_len = length(proj_mat * vm_mat * vec4(right, 1.0));
-
-  float h = length(proj);
-  
-  return h;
+vec2 toCamSpace(vec3 v) {
+  return (modelViewMat * vec4(v, 1.0)).xy;
 }
+
+vec3 lerp(vec3 base, vec3 final, float t) {
+  t = clamp(t, 0.0, 1.0);
+  vec3 difference = final - base;
+  return base + (difference * t);
+}
+
+float mag(vec3 v) { return distance(v, vec3(0.0)); }
+float mag(vec2 v) { return distance(v, vec2(0.0)); }
 
 void main() {
-  vec3 color = vec3(0.73, 0.87, 1.0);
-  float rs = alphaedit(vpos);
-  gl_FragColor = vec4(color, 1.0 - (rs * THICK));
+  distNormalizer = distance(cameraPosition, vec3(0.0));
+  vec3 camRight = vec3(modelViewMat[0][0], modelViewMat[1][0], modelViewMat[2][0]);
+
+  float referenceUnitLength = camSpaceDist(camRight, vec3(0.0));
+  float alpha;
+
+  float camSpaceERadius = referenceUnitLength * eradius;
+  float pdist = camSpaceDist(pos, vec3(0.0));
+
+  float brightFactor = 1.0;
+  float scaleFactor = 0.9;
+
+  if (pdist <= referenceUnitLength * 6.38) alpha = 1.0 - dot(fragNorm, normalize(cameraPosition));
+  else alpha = 1.0 - (pdist / camSpaceERadius * (1.0/scaleFactor));
+
+  vec3 baseColor = vec3(0.45, 0.75, 0.9);
+  vec3 finColor = vec3(0.8824, 0.2902, 0.0353);
+  vec3 color = baseColor;
+  camSunAngle = acos(dot(cameraPosition, sunPos)/(mag(cameraPosition) * mag(sunPos)));
+
+  float dimSpeed = 1.25;
+  if (camSunAngle >= PI * 0.5) {
+    float from45 = camSunAngle - PI * 0.5;
+    from45 /= (PI * (1.0 / dimSpeed));
+    alpha *= clamp((1.0 - from45), 0.6, 1.0);
+  }
+
+  // if (camSunAngle >= PI * 0.75) color = lerp(baseColor, finColor, (camSunAngle - 0.75 * PI) / (0.25 * PI) + 0.2);
+  // else color = baseColor;
+
+  alpha *= brightFactor;
+  gl_FragColor = vec4(color, alpha);
 }
