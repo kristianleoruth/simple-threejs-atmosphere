@@ -14,11 +14,7 @@ export class GameMaster {
     $(window).on("resize", () => {
       this.mainCamera.aspect = window.innerWidth / window.innerHeight
       this.mainCamera.updateProjectionMatrix()
-      renderer.setSize(window.innerWidth, window.innerHeight)
-    })
-
-    $(window).on("DOMMouseScroll mousewheel", e => {
-      e.preventDefault()
+      this.renderer.setSize(window.innerWidth, window.innerHeight)
     })
   }
 
