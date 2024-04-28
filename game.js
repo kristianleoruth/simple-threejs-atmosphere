@@ -4,6 +4,7 @@ import * as Util from "./util.js"
 import * as GameMaster from "./game-master.js"
 
 const CAM_DIST = 20
+const CAM_ROTATE_SPEED = 0.0025
 const FOV_FACTOR_IN = 1.05
 const FOV_FACTOR_OUT = 0.95
 
@@ -12,8 +13,8 @@ let earth
 let atmosphere
 
 // Load atmosphere shader
-const atmVS = await LoadFileContents("./shaders/testVS.glsl")
-const atmFS = await LoadFileContents("./shaders/atm_testfs.glsl")
+const atmVS = await LoadFileContents("./shaders/atm_vs.glsl")
+const atmFS = await LoadFileContents("./shaders/atm_fs.glsl")
 // console.log(atmFS)
 
 async function LoadFileContents(path) {
@@ -28,7 +29,7 @@ async function LoadFileContents(path) {
 
 function Start() {
   const eradius = 10;
-  const earthGeo = new Three.SphereGeometry(eradius, 500, 300)
+  const earthGeo = new Three.SphereGeometry(eradius, 100, 100)
   const earthMat = new Three.MeshLambertMaterial({
     color: 0x142c54,
   })
@@ -52,11 +53,11 @@ function Start() {
   axes.setColors(0xfcba03, 0x29b50d, 0x091bde)
   gm.scene.add(axes)
 
-  const atmGeo = new Three.SphereGeometry(11.5, 300, 200)
+  const atmSizeMult = 1.1
+  const atmGeo = new Three.SphereGeometry(eradius * atmSizeMult, 64, 64)
   const uniforms = {
-    atmradius: 1.0,
-    eradius: eradius,
-    spos: dLight.position,
+    eradius: {value: eradius},
+    sunPos: {value: dLight.position},
   }
   const atmMat = new Three.ShaderMaterial({
     uniforms: uniforms,
@@ -94,6 +95,23 @@ function Zoom(scrollDelta) {
   gm.mainCamera.updateProjectionMatrix()
 }
 
+let prevMousePos = null
+let handleMouseInput = false
+function HandleView(mEvent) {
+  if (!handleMouseInput) return
+  const mpos = new Three.Vector2(mEvent.clientX, mEvent.clientY)
+  
+  const vdiff = new Three.Vector2(mpos.x - prevMousePos.x, mpos.y - prevMousePos.y)
+  
+  gm.originToCam.x += CAM_ROTATE_SPEED * vdiff.x
+  gm.originToCam.x = Util.WrapAngle(gm.originToCam.x)
+  gm.originToCam.y += CAM_ROTATE_SPEED * vdiff.y
+  gm.originToCam.y = Util.Clamp(gm.originToCam.y, 1.5, -1.5)
+
+  prevMousePos.x = mpos.x
+  prevMousePos.y = mpos.y
+}
+
 function UpdateCamPos() {
   let cpos = Util.FromAngles(gm.originToCam.x, gm.originToCam.y, CAM_DIST)
   gm.mainCamera.position.set(cpos.x, cpos.y, cpos.z)
@@ -103,6 +121,19 @@ function UpdateCamPos() {
 function RotateEarth() {
   earth.rotation.z += 0.1
 }
+
+$(document.body).on("mousedown", e => {
+  handleMouseInput = true
+  prevMousePos = new Three.Vector2(e.clientX, e.clientY)
+})
+
+$(document.body).on("mouseup", e => {
+  handleMouseInput = false
+})
+
+$(document.body).on("mousemove", e => {
+  HandleView(e)
+})
 
 $(window).on("mousewheel DOMMouseScroll scroll", (e) => {
   // e.preventDefault();
