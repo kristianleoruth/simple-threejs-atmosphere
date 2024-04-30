@@ -65,6 +65,10 @@ const GameLoop = (gameMaster) => {
   gameMaster._SetFrameTimes()
 }
 
+/**
+ * 
+ * @param {GameMaster} gameMaster 
+ */
 export const SetupGameLoop = (gameMaster) => {
   window.setInterval(GameLoop, gameMaster.FRAME_TIME, gameMaster)
 }

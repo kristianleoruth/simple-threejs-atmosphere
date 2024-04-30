@@ -15,7 +15,6 @@ let atmosphere
 // Load atmosphere shader
 const atmVS = await LoadFileContents("./shaders/atm_vs.glsl")
 const atmFS = await LoadFileContents("./shaders/atm_fs.glsl")
-// console.log(atmFS)
 
 async function LoadFileContents(path) {
   try {
@@ -65,9 +64,6 @@ function Start() {
     vertexShader: atmVS,
     fragmentShader: atmFS,
   })
-  // const atmMat = new Three.MeshLambertMaterial({
-  //   color: 0xffffffff,
-  // })
   atmosphere = new Three.Mesh(atmGeo, atmMat)
   atmosphere.position.set(0,0,0)
   gm.scene.add(atmosphere)
@@ -91,7 +87,7 @@ function Zoom(scrollDelta) {
     gm.mainCamera.fov *= FOV_FACTOR_IN
   }
   else gm.mainCamera.fov *= FOV_FACTOR_OUT
-  gm.mainCamera.fov = Util.Clamp(gm.mainCamera.fov, 100, 30)
+  gm.mainCamera.fov = Util.Clamp(gm.mainCamera.fov, 120, 30)
   gm.mainCamera.updateProjectionMatrix()
 }
 
