@@ -5,6 +5,8 @@ varying mat4 projMat;
 
 uniform float eradius;
 uniform vec3 sunPos;
+uniform vec3 epos;
+uniform float atmradius;
 
 float distNormalizer;
 float camSunAngle;
@@ -28,40 +30,93 @@ vec3 lerp(vec3 base, vec3 final, float t) {
   return base + (difference * t);
 }
 
-float mag(vec3 v) { return distance(v, vec3(0.0)); }
-float mag(vec2 v) { return distance(v, vec2(0.0)); }
+// Returns vector (dstToSphere, dstThroughSphere)
+	// If ray origin is inside sphere, dstToSphere = 0
+	// If ray misses sphere, dstToSphere = maxValue; dstThroughSphere = 0
+vec2 raySphere(vec3 sphereCentre, float sphereRadius, vec3 rayOrigin, vec3 rayDir) {
+  vec3 offset = rayOrigin - sphereCentre;
+  float a = 1.0; // Set to dot(rayDir, rayDir) if rayDir might not be normalized
+  float b = 2.0 * dot(offset, rayDir);
+  float c = dot (offset, offset) - sphereRadius * sphereRadius;
+  float d = b * b - 4.0 * a * c; // Discriminant from quadratic formula
 
-void main() {
-  distNormalizer = distance(cameraPosition, vec3(0.0));
-  vec3 camRight = vec3(modelViewMat[0][0], modelViewMat[1][0], modelViewMat[2][0]);
+  // Number of intersections: 0 when d < 0; 1 when d = 0; 2 when d > 0
+  if (d > 0.0) {
+    float s = sqrt(d);
+    float dstToSphereNear = max(0.0, (-b - s) / (2.0 * a));
+    float dstToSphereFar = (-b + s) / (2.0 * a);
 
-  float referenceUnitLength = camSpaceDist(camRight, vec3(0.0));
-  float alpha;
+    // Ignore intersections that occur behind the ray
+    if (dstToSphereFar >= 0.0) {
+      return vec2(dstToSphereNear, dstToSphereFar - dstToSphereNear);
+    }
+  }
+  // Ray did not intersect sphere
+  return vec2(100000000.0, 0.0);
+}
 
-  float camSpaceERadius = referenceUnitLength * eradius;
-  float pdist = camSpaceDist(pos, vec3(0.0));
+float brightnessScale(float x) {
+  return 0.2 * log(x - 0.25) + 1.0;
+}
 
-  float brightFactor = 1.0;
-  float scaleFactor = 0.9;
+float dtpa2(vec3 rayOrigin, vec3 rayDir) {
+  float ATM_FACTOR = 1.0;
+  float BRIGHT_SCALE = 1.5;
+  vec2 atmInt = raySphere(epos, atmradius, rayOrigin, rayDir);
+  vec3 closestPoint = rayOrigin + rayDir * (atmInt.x + (atmInt.y - atmInt.x) * 0.5);
+  float dFromOrig = distance(closestPoint, epos) / atmradius;
 
-  if (pdist <= referenceUnitLength * 6.38) alpha = 1.0 - dot(fragNorm, normalize(cameraPosition));
-  else alpha = 1.0 - (pdist / camSpaceERadius * (1.0/scaleFactor));
-
-  vec3 baseColor = vec3(0.45, 0.75, 0.9);
-  vec3 finColor = vec3(0.8824, 0.2902, 0.0353);
-  vec3 color = baseColor;
-  camSunAngle = acos(dot(cameraPosition, sunPos)/(mag(cameraPosition) * mag(sunPos)));
-
-  float dimSpeed = 1.25;
-  if (camSunAngle >= PI * 0.5) {
-    float from45 = camSunAngle - PI * 0.5;
-    from45 /= (PI * (1.0 / dimSpeed));
-    alpha *= clamp((1.0 - from45), 0.6, 1.0);
+  // float depth = exp(-dFromOrig);
+  float dpr = dot(fragNorm, normalize(cameraPosition - pos));
+  float lightDpr = brightnessScale((dot(fragNorm, normalize(sunPos - pos)) + 1.0) * BRIGHT_SCALE);
+  
+  if (dFromOrig <= 0.8435) {
+    return bscale(dFromOrig * (atmradius / eradius)) * lightDpr * ATM_FACTOR;
   }
 
-  // if (camSunAngle >= PI * 0.75) color = lerp(baseColor, finColor, (camSunAngle - 0.75 * PI) / (0.25 * PI) + 0.2);
-  // else color = baseColor;
+  return lightDpr * dpr * ATM_FACTOR;
+}
 
-  alpha *= brightFactor;
-  gl_FragColor = vec4(color, alpha);
+float dtpa(vec3 rayOrigin, vec3 rayDir) {
+  float ATM_FACTOR = 1.0;
+  vec2 atmInt = raySphere(epos, atmradius, rayOrigin, rayDir);
+  vec2 planetInt = raySphere(epos, eradius, rayOrigin, rayDir);
+
+  float dist = 0.0;
+  if (atmInt.x < 0.01) { // inside atmosphere
+    dist = atmInt.y;
+  }
+  else {
+    dist = atmInt.y - atmInt.x;
+  }
+
+  // float dprod = exp(-dot(fragNorm, normalize(sunPos - pos)));
+  float camProd = dot(fragNorm, -rayDir);
+  float dprod = max(dot(fragNorm, normalize(sunPos - pos)), 0.0);
+  return dist / (atmradius * 2.0);
+}
+
+float brightnessScaler(float scale) {
+  return scale;
+}
+
+// float lightScattering(vec3 rayOrigin, vec3 rayDir, float rayLength) {
+  
+// }
+
+void main() {
+  float alpha;
+
+  vec4 baseColor = vec4(0.22, 0.63, 0.84, 1.0);
+  vec4 finalColor = vec4(0.95, 0.51, 0.25, 1.0);
+  vec4 color = baseColor;
+
+  float EPSILON = 0.0001;
+  vec3 dirToFrag = normalize(pos - cameraPosition);
+
+  float light = dtpa2(cameraPosition, dirToFrag);
+  float distThroughAtm = dtpa(cameraPosition, dirToFrag);
+  color = vec4(baseColor.xyz * light, light);
+  // color = vec4(baseColor.xyz, light);
+  gl_FragColor = color;
 }

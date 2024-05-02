@@ -40,9 +40,28 @@ function Start() {
   dLight.position.set(10, 20, 0)
   gm.scene.add(dLight)
 
-  const d2Light = new Three.DirectionalLight(0xfffffffff, 5)
-  dLight.position.set(20, 15, 0)
-  gm.scene.add(d2Light)
+  /* Stars */
+  const starMaterial = new Three.PointsMaterial({
+    color: 0xffffff
+  })
+  const starGeometry = new Three.BufferGeometry()
+
+  const starPoints = []
+  for (let i = 0; i < 10000; i++) {
+    let x = (Math.random() - 0.5) * 6000
+    let y = (Math.random() - 0.5) * 6000
+    let z = (Math.random() - 0.5) * 6000
+    if ((new Three.Vector3(x,y,z)).length() <= 200) continue
+    starPoints.push(x, y, z)
+  }
+
+  starGeometry.setAttribute('position', new Three.Float32BufferAttribute(starPoints, 3))
+  const stars = new Three.Points(starGeometry, starMaterial)
+  gm.scene.add(stars)
+
+  // const d2Light = new Three.DirectionalLight(0xfffffffff, 5)
+  // dLight.position.set(20, 15, 0)
+  // gm.scene.add(d2Light)
 
   const aLight = new Three.AmbientLight(0xffffffff, 0.01)
   gm.scene.add(aLight)
@@ -50,12 +69,15 @@ function Start() {
   const axes = new Three.AxesHelper(20)
   // yellow, green, blue
   axes.setColors(0xfcba03, 0x29b50d, 0x091bde)
-  gm.scene.add(axes)
+  // gm.scene.add(axes)
 
-  const atmSizeMult = 1.1
-  const atmGeo = new Three.SphereGeometry(eradius * atmSizeMult, 64, 64)
+  const _eradius = eradius * 1.0
+  const atmSizeMult = 1.3
+  const atmGeo = new Three.SphereGeometry(_eradius * atmSizeMult, 64, 64)
   const uniforms = {
-    eradius: {value: eradius},
+    eradius: {value: _eradius},
+    atmradius: {value: _eradius * atmSizeMult},
+    epos: {value: new Three.Vector3(0)},
     sunPos: {value: dLight.position},
   }
   const atmMat = new Three.ShaderMaterial({
