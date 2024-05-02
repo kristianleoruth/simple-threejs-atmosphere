@@ -60,8 +60,8 @@ float brightnessScale(float x) {
 }
 
 float bscale(float x) {
-  float BSCALE = 0.8;
-  return 0.000015 * exp(10.0 * x) * BSCALE;
+  float BSCALE = 0.5;
+  return x*x * BSCALE;
 }
 
 float dtpa2(vec3 rayOrigin, vec3 rayDir) {
@@ -112,7 +112,7 @@ float brightnessScaler(float scale) {
 void main() {
   float alpha;
 
-  vec4 baseColor = vec4(0.22, 0.63, 0.84, 1.0);
+  vec4 baseColor = vec4(0.5686, 0.8353, 0.9725, 1.0);
   vec4 finalColor = vec4(0.95, 0.51, 0.25, 1.0);
   vec4 color = baseColor;
 
