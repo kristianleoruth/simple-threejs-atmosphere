@@ -59,6 +59,11 @@ float brightnessScale(float x) {
   return 0.2 * log(x - 0.25) + 1.0;
 }
 
+float bscale(float x) {
+  float BSCALE = 0.8;
+  return 0.000015 * exp(10.0 * x) * BSCALE;
+}
+
 float dtpa2(vec3 rayOrigin, vec3 rayDir) {
   float ATM_FACTOR = 1.0;
   float BRIGHT_SCALE = 1.5;
